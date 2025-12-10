@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Briefcase, 
   Calendar, 
   Target, 
   Clock, 
   ChevronRight, 
   Layout, 
   PenTool, 
-  TrendingUp,
-  FileText,
-  Trash2,
-  ArrowRight
+  TrendingUp, 
+  FileText, 
+  Trash2, 
+  ArrowRight,
+  Clipboard
 } from 'lucide-react';
 import { SheetViewer } from './components/SheetViewer.tsx';
 import { SheetHistoryItem, ViewMode } from './types.ts';
@@ -23,6 +23,7 @@ export default function App() {
   // Input states
   const [inputUrl, setInputUrl] = useState('');
   const [inputName, setInputName] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Load history from local storage on mount with Date hydration
   useEffect(() => {
@@ -43,7 +44,31 @@ export default function App() {
     }
   }, []);
 
-  const handleLoadSheet = (url: string, name: string) => {
+  // Helper to fetch or generate a name
+  const fetchSheetName = async (url: string): Promise<string> => {
+    try {
+      // Attempt to fetch via noembed for public sheets to get the real title
+      const response = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      if (data.title && !data.title.includes("Google Sheets - create and edit")) {
+        return data.title;
+      }
+    } catch (e) {
+      // Silent fail, proceed to fallback
+    }
+
+    // Fallback: Create a name based on ID if real title fetch fails
+    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (match && match[1]) {
+        const id = match[1];
+        // Create a short identifiable name
+        return `Google Sheet ${id.substring(0, 5)}...${id.substring(id.length - 4)}`;
+    }
+    
+    return `Kế hoạch ngày ${new Date().toLocaleDateString('vi-VN')}`;
+  };
+
+  const handleLoadSheet = async (url: string, name: string) => {
     if (!url) return;
     
     // Basic validation
@@ -52,7 +77,14 @@ export default function App() {
       return;
     }
 
-    const finalName = name.trim() || `Kế hoạch ngày ${new Date().toLocaleDateString('vi-VN')}`;
+    setIsProcessing(true);
+
+    let finalName = name.trim();
+    
+    // If name is empty, try to fetch it or generate it
+    if (!finalName) {
+      finalName = await fetchSheetName(url);
+    }
 
     setCurrentUrl(url);
     setViewMode(ViewMode.Sheet);
@@ -73,6 +105,22 @@ export default function App() {
     // Reset inputs
     setInputUrl('');
     setInputName('');
+    setIsProcessing(false);
+  };
+
+  const handlePasteAndGo = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setInputUrl(text);
+        // Automatically trigger load with the pasted URL
+        await handleLoadSheet(text, inputName);
+      } else {
+        alert("Clipboard trống!");
+      }
+    } catch (err) {
+      alert("Không thể truy cập Clipboard. Vui lòng dán thủ công.");
+    }
   };
 
   const handleDeleteHistory = (e: React.MouseEvent, id: string) => {
@@ -105,10 +153,12 @@ export default function App() {
             onClick={handleReturnHome}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
           >
-            <div className="bg-gradient-to-tr from-brand-gold to-brand-accent p-2 rounded-lg shadow-md group-hover:shadow-brand-accent/20">
-              <Briefcase size={22} className="text-white" />
-            </div>
-            <div>
+            <img 
+              src="https://botsumo.io/wp-content/uploads/2020/11/icon-botsumo-300x300.png" 
+              alt="Logo" 
+              className="h-10 w-10 object-contain rounded bg-white p-0.5"
+            />
+            <div className="text-left">
               <span className="font-serif font-bold text-xl tracking-wide text-white block leading-none">
                 Branding & Content
               </span>
@@ -122,12 +172,12 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden relative">
         
         {viewMode === ViewMode.Welcome ? (
-          <div className="flex-1 overflow-y-auto bg-slate-50 relative">
+          <div className="flex-1 overflow-y-auto bg-slate-50 relative flex flex-col">
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-slate-200 to-transparent pointer-events-none"></div>
             <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="max-w-5xl mx-auto px-6 py-16 relative z-10">
+            <div className="max-w-5xl mx-auto px-6 py-16 relative z-10 flex-1">
               
               {/* Hero Section */}
               <div className="text-center space-y-6 mb-16">
@@ -144,14 +194,14 @@ export default function App() {
                 
                 {/* Input Card */}
                 <div className="max-w-2xl mx-auto mt-10">
-                  <div className="bg-white p-2 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col md:flex-row gap-2 relative overflow-hidden group">
-                     <div className="absolute top-0 left-0 w-1 h-full bg-brand-accent"></div>
+                  <div className="bg-white p-2 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col md:flex-row gap-2 relative overflow-visible group">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-brand-accent rounded-l-2xl"></div>
                      
                      {/* Name Input */}
                      <div className="flex-1 min-w-[200px]">
                         <input 
                           type="text" 
-                          placeholder="Đặt tên cho kế hoạch (VD: Content T5/2024)..."
+                          placeholder="Đặt tên kế hoạch (để trống để tự động lấy)..."
                           className="w-full h-full px-4 py-3 bg-transparent outline-none text-slate-800 placeholder-slate-400 text-sm font-medium"
                           value={inputName}
                           onChange={(e) => setInputName(e.target.value)}
@@ -161,25 +211,36 @@ export default function App() {
                      <div className="w-px bg-slate-100 hidden md:block"></div>
 
                      {/* URL Input */}
-                     <div className="flex-[1.5]">
+                     <div className="flex-[1.5] relative flex items-center">
                         <input 
                           type="text" 
                           placeholder="Dán link Google Sheet vào đây..."
-                          className="w-full h-full px-4 py-3 bg-transparent outline-none text-slate-800 placeholder-slate-400 text-sm"
+                          className="w-full h-full pl-4 pr-12 py-3 bg-transparent outline-none text-slate-800 placeholder-slate-400 text-sm"
                           value={inputUrl}
                           onChange={(e) => setInputUrl(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleLoadSheet(inputUrl, inputName)}
                         />
+                        {/* Paste & Go Button */}
+                        <button 
+                          onClick={handlePasteAndGo}
+                          title="Dán link và Mở ngay"
+                          className="absolute right-2 p-1.5 text-slate-400 hover:text-brand-gold hover:bg-brand-gold/10 rounded-md transition-all"
+                        >
+                          <Clipboard size={18} />
+                        </button>
                      </div>
                      
                      <button 
                        onClick={() => handleLoadSheet(inputUrl, inputName)}
-                       className="bg-brand-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-800 transition-all shadow-lg shadow-brand-900/20 flex items-center justify-center gap-2 md:w-auto w-full"
+                       disabled={isProcessing}
+                       className="bg-brand-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-800 transition-all shadow-lg shadow-brand-900/20 flex items-center justify-center gap-2 md:w-auto w-full disabled:opacity-70"
                      >
-                       Mở Ngay <ArrowRight size={16} />
+                       {isProcessing ? 'Đang xử lý...' : (
+                         <>Mở Ngay <ArrowRight size={16} /></>
+                       )}
                      </button>
                   </div>
-                  <p className="text-xs text-slate-400 mt-3 italic">Hỗ trợ mọi đường dẫn Google Sheets được chia sẻ</p>
+                  <p className="text-xs text-slate-400 mt-3 italic">Mẹo: Bấm vào biểu tượng Clipboard để Dán và Mở ngay lập tức.</p>
                 </div>
               </div>
 
@@ -252,6 +313,19 @@ export default function App() {
               </div>
 
             </div>
+
+            {/* Footer */}
+            <div className="py-6 text-center pb-8 z-10 relative">
+               <a 
+                 href="https://tuanlamviec4h.com/checkvar" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="font-serif text-slate-500 hover:text-brand-gold transition-colors text-sm font-medium hover:underline tracking-wide"
+               >
+                 Doanh Nghiệp Một Người - Tuần Làm Việc 4h
+               </a>
+            </div>
+
           </div>
         ) : (
           <div className="flex-1 flex flex-col relative bg-white">
