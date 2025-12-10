@@ -10,7 +10,10 @@ import {
   FileText, 
   Trash2, 
   ArrowRight,
-  Clipboard
+  Clipboard,
+  Edit2,
+  Check,
+  X
 } from 'lucide-react';
 import { SheetViewer } from './components/SheetViewer.tsx';
 import { SheetHistoryItem, ViewMode } from './types.ts';
@@ -24,6 +27,10 @@ export default function App() {
   const [inputUrl, setInputUrl] = useState('');
   const [inputName, setInputName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Edit states
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   // Load history from local storage on mount with Date hydration
   useEffect(() => {
@@ -128,6 +135,31 @@ export default function App() {
     const newHistory = history.filter(item => item.id !== id);
     setHistory(newHistory);
     localStorage.setItem('sheet_history', JSON.stringify(newHistory));
+  };
+
+  const handleStartEdit = (e: React.MouseEvent, item: SheetHistoryItem) => {
+    e.stopPropagation();
+    setEditingId(item.id);
+    setEditingTitle(item.title);
+  };
+
+  const handleSaveEdit = (e: React.MouseEvent | React.KeyboardEvent, id: string) => {
+    e.stopPropagation();
+    if (!editingTitle.trim()) return;
+
+    const newHistory = history.map(h => 
+      h.id === id ? { ...h, title: editingTitle.trim() } : h
+    );
+    setHistory(newHistory);
+    localStorage.setItem('sheet_history', JSON.stringify(newHistory));
+    setEditingId(null);
+    setEditingTitle('');
+  };
+
+  const handleCancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+    setEditingTitle('');
   };
 
   const handleReturnHome = () => {
@@ -261,31 +293,83 @@ export default function App() {
                         onClick={() => handleLoadSheet(item.url, item.title)}
                         className="group relative bg-white border border-slate-200 rounded-xl p-5 hover:border-brand-gold hover:shadow-xl hover:shadow-brand-gold/5 transition-all cursor-pointer flex flex-col justify-between h-32"
                       >
-                        <div>
+                        <div className="w-full">
                           <div className="flex items-start justify-between mb-2">
                              <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-brand-gold/10 transition-colors">
                                 <FileText size={20} className="text-slate-400 group-hover:text-brand-gold" />
                              </div>
-                             <button 
-                               onClick={(e) => handleDeleteHistory(e, item.id)}
-                               className="text-slate-300 hover:text-red-500 transition-colors p-1"
-                               title="Xóa khỏi lịch sử"
-                             >
-                               <Trash2 size={14} />
-                             </button>
+                             
+                             {/* Actions: Edit & Delete */}
+                             <div className="flex items-center gap-1 opacity-100 transition-opacity">
+                                {editingId === item.id ? (
+                                   <>
+                                     <button 
+                                       onClick={(e) => handleSaveEdit(e, item.id)}
+                                       className="text-green-600 hover:bg-green-50 p-1.5 rounded transition-colors"
+                                       title="Lưu tên mới"
+                                     >
+                                       <Check size={14} strokeWidth={3} />
+                                     </button>
+                                     <button 
+                                       onClick={handleCancelEdit}
+                                       className="text-slate-400 hover:bg-slate-100 p-1.5 rounded transition-colors"
+                                       title="Hủy bỏ"
+                                     >
+                                       <X size={14} strokeWidth={3} />
+                                     </button>
+                                   </>
+                                ) : (
+                                   <>
+                                     <button 
+                                       onClick={(e) => handleStartEdit(e, item)}
+                                       className="text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors p-1.5 rounded"
+                                       title="Đổi tên"
+                                     >
+                                       <Edit2 size={14} />
+                                     </button>
+                                     <button 
+                                       onClick={(e) => handleDeleteHistory(e, item.id)}
+                                       className="text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors p-1.5 rounded"
+                                       title="Xóa khỏi lịch sử"
+                                     >
+                                       <Trash2 size={14} />
+                                     </button>
+                                   </>
+                                )}
+                             </div>
                           </div>
-                          <h3 className="font-serif font-bold text-slate-800 truncate pr-4 text-lg">
-                            {item.title}
-                          </h3>
+
+                          {/* Title Area - Editable */}
+                          {editingId === item.id ? (
+                            <input 
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveEdit(e, item.id);
+                                if (e.key === 'Escape') handleCancelEdit(e);
+                              }}
+                              autoFocus
+                              className="w-full font-serif font-bold text-lg text-brand-900 border-b-2 border-brand-gold outline-none bg-transparent py-0.5"
+                            />
+                          ) : (
+                            <h3 className="font-serif font-bold text-slate-800 truncate pr-4 text-lg" title={item.title}>
+                              {item.title}
+                            </h3>
+                          )}
                         </div>
                         
+                        {/* Footer Card */}
                         <div className="flex items-end justify-between mt-2">
                           <p className="text-xs text-slate-400 font-medium">
                             {formatDate(item.lastAccessed)}
                           </p>
-                          <div className="opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300 text-brand-gold">
-                             <ArrowRight size={16} />
-                          </div>
+                          {editingId !== item.id && (
+                            <div className="opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300 text-brand-gold">
+                               <ArrowRight size={16} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
