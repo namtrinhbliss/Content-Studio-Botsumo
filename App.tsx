@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Sheet, Menu, Zap, Plus, Clock, FileSpreadsheet, ChevronRight, Layout } from 'lucide-react';
+import { 
+  Briefcase, 
+  Calendar, 
+  Target, 
+  Clock, 
+  ChevronRight, 
+  Layout, 
+  PenTool, 
+  TrendingUp,
+  FileText,
+  Trash2,
+  ArrowRight
+} from 'lucide-react';
 import { SheetViewer } from './components/SheetViewer.tsx';
 import { SheetHistoryItem, ViewMode } from './types.ts';
 
@@ -7,7 +19,10 @@ export default function App() {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Welcome);
   const [history, setHistory] = useState<SheetHistoryItem[]>([]);
+  
+  // Input states
   const [inputUrl, setInputUrl] = useState('');
+  const [inputName, setInputName] = useState('');
 
   // Load history from local storage on mount with Date hydration
   useEffect(() => {
@@ -23,20 +38,21 @@ export default function App() {
         setHistory(hydratedData);
       } catch (e) {
         console.error("Failed to parse history", e);
-        // If parsing fails, clear corrupted data
         localStorage.removeItem('sheet_history');
       }
     }
   }, []);
 
-  const handleLoadSheet = (url: string) => {
+  const handleLoadSheet = (url: string, name: string) => {
     if (!url) return;
     
     // Basic validation
     if (!url.includes('google.com/spreadsheets')) {
-      alert("Please enter a valid Google Sheets URL");
+      alert("Vui lòng nhập đúng đường link Google Sheets");
       return;
     }
+
+    const finalName = name.trim() || `Kế hoạch ngày ${new Date().toLocaleDateString('vi-VN')}`;
 
     setCurrentUrl(url);
     setViewMode(ViewMode.Sheet);
@@ -45,34 +61,59 @@ export default function App() {
     const newItem: SheetHistoryItem = {
       id: Date.now().toString(),
       url,
-      title: `Sheet ${new Date().toLocaleTimeString()}`, 
+      title: finalName, 
       lastAccessed: new Date()
     };
     
-    // Update history: remove duplicates of current url, add new to top, limit to 10
-    const newHistory = [newItem, ...history.filter(h => h.url !== url)].slice(0, 10);
+    // Update history: remove duplicates of current url, add new to top
+    const newHistory = [newItem, ...history.filter(h => h.url !== url)].slice(0, 12);
     setHistory(newHistory);
     localStorage.setItem('sheet_history', JSON.stringify(newHistory));
+    
+    // Reset inputs
     setInputUrl('');
+    setInputName('');
+  };
+
+  const handleDeleteHistory = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newHistory = history.filter(item => item.id !== id);
+    setHistory(newHistory);
+    localStorage.setItem('sheet_history', JSON.stringify(newHistory));
   };
 
   const handleReturnHome = () => {
     setViewMode(ViewMode.Welcome);
   };
 
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(date);
+  };
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-50 text-gray-900 font-sans overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden">
       {/* Top Navigation Bar */}
-      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 flex-shrink-0 z-20">
-        <div className="flex items-center gap-4">
+      <header className="h-16 bg-brand-900 border-b border-slate-800 flex items-center justify-between px-6 shadow-lg flex-shrink-0 z-30">
+        <div className="flex items-center gap-3">
           <button 
             onClick={handleReturnHome}
-            className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-lg transition-colors group"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
           >
-            <div className="bg-green-600 text-white p-1.5 rounded-md shadow-sm group-hover:scale-105 transition-transform">
-              <FileSpreadsheet size={20} />
+            <div className="bg-gradient-to-tr from-brand-gold to-brand-accent p-2 rounded-lg shadow-md group-hover:shadow-brand-accent/20">
+              <Briefcase size={22} className="text-white" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-gray-800">SheetMaster</span>
+            <div>
+              <span className="font-serif font-bold text-xl tracking-wide text-white block leading-none">
+                Branding & Content
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-brand-accent font-medium">Plan Master</span>
+            </div>
           </button>
         </div>
       </header>
@@ -81,95 +122,149 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden relative">
         
         {viewMode === ViewMode.Welcome ? (
-          <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
-            <div className="max-w-4xl mx-auto space-y-12 py-10">
+          <div className="flex-1 overflow-y-auto bg-slate-50 relative">
+            {/* Decorative Background Elements */}
+            <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-slate-200 to-transparent pointer-events-none"></div>
+            <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="max-w-5xl mx-auto px-6 py-16 relative z-10">
               
               {/* Hero Section */}
-              <div className="text-center space-y-6">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-                  Supercharge your <span className="text-green-600">Spreadsheets</span>
+              <div className="text-center space-y-6 mb-16">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-gold/10 text-brand-gold text-xs font-bold uppercase tracking-widest border border-brand-gold/20 mb-4">
+                  <Target size={12} /> Quản trị hiệu suất cao
+                </div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-brand-900 leading-tight">
+                  Quản lý <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-gold to-brand-accent">Thông tin Thương hiệu</span><br/>
+                  & Lên kế hoạch Content
                 </h1>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                  View and edit shared Google Sheets in a focused environment. 
-                  Manage your data efficiently without distractions.
+                <p className="text-lg text-slate-600 max-w-2xl mx-auto font-light">
+                  Nền tảng tập trung giúp bạn xây dựng chiến lược, theo dõi tiến độ và quản lý file Google Sheets một cách chuyên nghiệp, không xao nhãng.
                 </p>
                 
-                <div className="max-w-xl mx-auto relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                  <div className="relative flex bg-white rounded-xl shadow-xl overflow-hidden p-2 ring-1 ring-gray-900/5">
-                    <input 
-                      type="text" 
-                      placeholder="Paste Google Sheet Link here..."
-                      className="flex-1 px-4 py-3 bg-transparent outline-none text-gray-700 placeholder-gray-400"
-                      value={inputUrl}
-                      onChange={(e) => setInputUrl(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleLoadSheet(inputUrl)}
-                    />
-                    <button 
-                      onClick={() => handleLoadSheet(inputUrl)}
-                      className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md flex items-center gap-2"
-                    >
-                      Open Sheet <ChevronRight size={18} />
-                    </button>
+                {/* Input Card */}
+                <div className="max-w-2xl mx-auto mt-10">
+                  <div className="bg-white p-2 rounded-2xl shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col md:flex-row gap-2 relative overflow-hidden group">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-brand-accent"></div>
+                     
+                     {/* Name Input */}
+                     <div className="flex-1 min-w-[200px]">
+                        <input 
+                          type="text" 
+                          placeholder="Đặt tên cho kế hoạch (VD: Content T5/2024)..."
+                          className="w-full h-full px-4 py-3 bg-transparent outline-none text-slate-800 placeholder-slate-400 text-sm font-medium"
+                          value={inputName}
+                          onChange={(e) => setInputName(e.target.value)}
+                        />
+                     </div>
+
+                     <div className="w-px bg-slate-100 hidden md:block"></div>
+
+                     {/* URL Input */}
+                     <div className="flex-[1.5]">
+                        <input 
+                          type="text" 
+                          placeholder="Dán link Google Sheet vào đây..."
+                          className="w-full h-full px-4 py-3 bg-transparent outline-none text-slate-800 placeholder-slate-400 text-sm"
+                          value={inputUrl}
+                          onChange={(e) => setInputUrl(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleLoadSheet(inputUrl, inputName)}
+                        />
+                     </div>
+                     
+                     <button 
+                       onClick={() => handleLoadSheet(inputUrl, inputName)}
+                       className="bg-brand-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-800 transition-all shadow-lg shadow-brand-900/20 flex items-center justify-center gap-2 md:w-auto w-full"
+                     >
+                       Mở Ngay <ArrowRight size={16} />
+                     </button>
                   </div>
+                  <p className="text-xs text-slate-400 mt-3 italic">Hỗ trợ mọi đường dẫn Google Sheets được chia sẻ</p>
                 </div>
               </div>
 
-              {/* Recent History */}
+              {/* Recent History Section */}
               {history.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-gray-500 uppercase text-xs font-bold tracking-wider">
-                    <Clock size={14} />
-                    Recent Sheets
+                <div className="space-y-6 animate-fade-in-up">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <div className="flex items-center gap-2 text-brand-900 uppercase text-xs font-bold tracking-widest">
+                      <Clock size={14} className="text-brand-gold" />
+                      Tài liệu gần đây
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {history.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        onClick={() => handleLoadSheet(item.url)}
-                        className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-green-200 transition-all text-left group"
+                        onClick={() => handleLoadSheet(item.url, item.title)}
+                        className="group relative bg-white border border-slate-200 rounded-xl p-5 hover:border-brand-gold hover:shadow-xl hover:shadow-brand-gold/5 transition-all cursor-pointer flex flex-col justify-between h-32"
                       >
-                        <div className="bg-green-50 text-green-600 p-3 rounded-lg group-hover:bg-green-100 transition-colors">
-                          <Sheet size={24} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {item.url.includes('/d/') ? 'Google Sheet ' + item.url.split('/d/')[1].substring(0, 8) + '...' : 'Google Sheet'}
+                        <div>
+                          <div className="flex items-start justify-between mb-2">
+                             <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-brand-gold/10 transition-colors">
+                                <FileText size={20} className="text-slate-400 group-hover:text-brand-gold" />
+                             </div>
+                             <button 
+                               onClick={(e) => handleDeleteHistory(e, item.id)}
+                               className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                               title="Xóa khỏi lịch sử"
+                             >
+                               <Trash2 size={14} />
+                             </button>
+                          </div>
+                          <h3 className="font-serif font-bold text-slate-800 truncate pr-4 text-lg">
+                            {item.title}
                           </h3>
-                          <p className="text-sm text-gray-500 truncate">{item.url}</p>
                         </div>
-                        <div className="opacity-0 group-hover:opacity-100 text-gray-400">
-                          <ExternalLinkIcon />
+                        
+                        <div className="flex items-end justify-between mt-2">
+                          <p className="text-xs text-slate-400 font-medium">
+                            {formatDate(item.lastAccessed)}
+                          </p>
+                          <div className="opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-300 text-brand-gold">
+                             <ArrowRight size={16} />
+                          </div>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
               {/* Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-16 mt-8 border-t border-slate-200">
                 <FeatureCard 
-                  icon={<Layout className="text-blue-500" />}
-                  title="Distraction Free"
-                  desc="A clean interface focused purely on your data editing experience."
+                  icon={<Layout className="text-brand-gold" />}
+                  title="Không gian Tập trung"
+                  desc="Giao diện loại bỏ mọi yếu tố gây nhiễu, giúp bạn tập trung hoàn toàn vào số liệu và kế hoạch."
                 />
                 <FeatureCard 
-                  icon={<Zap className="text-purple-500" />}
-                  title="Instant Access"
-                  desc="Load your sheets instantly without navigating through Drive folders."
+                  icon={<PenTool className="text-brand-gold" />}
+                  title="Lập Kế Hoạch Content"
+                  desc="Tối ưu hóa quy trình sáng tạo nội dung hàng ngày. Chỉnh sửa trực tiếp, lưu trữ tự động."
                 />
                 <FeatureCard 
-                  icon={<Sheet className="text-green-500" />}
-                  title="Native Editing"
-                  desc="Full editing capabilities preserved via secure Google embedding."
+                  icon={<TrendingUp className="text-brand-gold" />}
+                  title="Quản trị Thương hiệu"
+                  desc="Theo dõi các chỉ số sức khỏe thương hiệu và chiến dịch marketing trong một view duy nhất."
                 />
               </div>
 
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex relative">
+          <div className="flex-1 flex flex-col relative bg-white">
+             {/* Simple Toolbar in Sheet View */}
+             <div className="h-10 bg-white border-b border-slate-200 flex items-center px-4 justify-between shrink-0">
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                   <span className="font-semibold text-brand-900">Đang xem:</span> 
+                   <span className="truncate max-w-md">{history.find(h => h.url === currentUrl)?.title || 'Tài liệu'}</span>
+                </div>
+                <div className="text-xs text-slate-400 italic">
+                   Dữ liệu được đồng bộ trực tiếp với Google
+                </div>
+             </div>
             <SheetViewer url={currentUrl} />
           </div>
         )}
@@ -179,19 +274,11 @@ export default function App() {
 }
 
 const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
-  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-    <div className="mb-4 bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
+  <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+    <div className="mb-5 bg-slate-50 w-14 h-14 rounded-xl flex items-center justify-center shadow-inner">
       {icon}
     </div>
-    <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
-    <p className="text-sm text-gray-600 leading-relaxed">{desc}</p>
+    <h3 className="font-serif font-bold text-xl text-brand-900 mb-3">{title}</h3>
+    <p className="text-sm text-slate-600 leading-relaxed font-light">{desc}</p>
   </div>
-);
-
-const ExternalLinkIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-    <polyline points="15 3 21 3 21 9"></polyline>
-    <line x1="10" y1="14" x2="21" y2="3"></line>
-  </svg>
 );

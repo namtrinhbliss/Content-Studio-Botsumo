@@ -28,13 +28,13 @@ export const SheetViewer: React.FC<SheetViewerProps> = ({ url }) => {
   const embedUrl = getEmbedUrl(url);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-100 relative overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-100 relative overflow-hidden">
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-20">
             <div className="flex flex-col items-center gap-3 animate-pulse">
-                <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-                <p className="text-gray-500 font-medium">Loading Spreadsheet...</p>
+                <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
+                <p className="text-slate-500 font-medium">Đang tải bảng tính...</p>
             </div>
         </div>
       )}
@@ -45,9 +45,9 @@ export const SheetViewer: React.FC<SheetViewerProps> = ({ url }) => {
           href={embedUrl} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="bg-white/90 backdrop-blur text-xs font-medium text-gray-600 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 flex items-center gap-1 hover:text-green-600 hover:border-green-300 transition-all"
+          className="bg-white/90 backdrop-blur text-xs font-medium text-slate-600 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 flex items-center gap-1 hover:text-brand-gold hover:border-brand-gold/30 transition-all"
         >
-          Open in New Tab <ExternalLink size={12} />
+          Mở tab mới <ExternalLink size={12} />
         </a>
       </div>
       
